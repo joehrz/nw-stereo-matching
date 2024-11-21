@@ -3,20 +3,42 @@
 #ifndef STEREO_MATCHING_H
 #define STEREO_MATCHING_H
 
+#include <vector>
 #include <string>
 
-// Struct to hold image data
-struct Image {
-    int width;
-    int height;
-    unsigned char* data;
+// Structure to hold alignment results
+struct AlignmentResult {
+    int disparity;
+    std::vector<int> leftAligned;   // Aligned left sequence
+    std::vector<int> rightAligned;  // Aligned right sequence
 };
 
-// Function declarations
-Image load_image(const std::string& path);
-void save_disparity_map(const std::string& path, const int* disparity_map, int width, int height);
-int* extract_disparity(const int* score_matrix, int width, int height, int max_disparity);
-void compute_disparity_cuda(const int* left_image, const int* right_image, int* score_matrix, int width, int height, int max_disparity);
-int* convert_to_int(const unsigned char* data, int size);
+// StereoMatcher class encapsulates the NW algorithm for stereo matching
+class StereoMatcher {
+public:
+    // Constructor to initialize scoring parameters
+    StereoMatcher(int matchScore, int mismatchPenalty, int gapPenalty);
+
+    // CPU version
+    AlignmentResult computeAlignment(const std::vector<int>& leftLine, const std::vector<int>& rightLine);
+
+    // CUDA Wavefront Parallelization version
+    AlignmentResult computeAlignmentCUDA(const std::vector<int>& leftLine, const std::vector<int>& rightLine);
+
+
+private:
+    int matchScore_;
+    int mismatchPenalty_;
+    int gapPenalty_;
+
+    // Helper functions for CPU implementation
+    void initializeMatrix(std::vector<int>& matrix, int rows, int cols);
+    void fillMatrix(const std::vector<int>& left, const std::vector<int>& right, std::vector<int>& matrix, int rows, int cols);
+    AlignmentResult backtrack(const std::vector<int>& left, const std::vector<int>& right, const std::vector<int>& matrix, int rows, int cols);
+
+    // CUDA helper function
+    void fillMatrixWavefrontCUDA(int* matrix, int rows, int cols, 
+                                 const std::vector<int>& left, const std::vector<int>& right);
+};
 
 #endif // STEREO_MATCHING_H

@@ -3,13 +3,10 @@
 #ifndef STEREO_MATCHING_KERNEL_H
 #define STEREO_MATCHING_KERNEL_H
 
-#include <cuda_runtime.h>
-
-// Define window size for SAD
-#define WINDOW_SIZE 5
-#define HALF_WINDOW (WINDOW_SIZE / 2)
-
-// CUDA kernel declaration
-__global__ void disparity_kernel(const int* left_image, const int* right_image, int* disparity_map, int width, int height, int max_disparity);
+// CUDA Kernel Declaration for Wavefront Parallelization
+__global__ void fillMatrixWavefrontKernel(int* d_matrix, int rows, int cols, 
+                                         const int* d_left, const int* d_right, 
+                                         int matchScore, int mismatchPenalty, int gapPenalty, 
+                                         int diagonal);
 
 #endif // STEREO_MATCHING_KERNEL_H

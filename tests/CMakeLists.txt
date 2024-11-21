@@ -1,26 +1,33 @@
-# tests/CMakeLists.txt
+# Define the test executable
+add_executable(runUnitTests ${CMAKE_SOURCE_DIR}/tests/unit/test_stereo_matching.cpp)
 
-# Enable testing for this directory
-enable_testing()
-
-# Add the test executable
-add_executable(test_stereo_matching unit/test_stereo_matching.cpp)
-
-# Set output directory for the test executable
-set_target_properties(test_stereo_matching PROPERTIES
-    RUNTIME_OUTPUT_DIRECTORY "${OUTPUT_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_DEBUG "${OUTPUT_DIR}"
-    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${OUTPUT_DIR}"
+# Include directories for the tests
+target_include_directories(runUnitTests PRIVATE
+    ${CMAKE_SOURCE_DIR}/include
+    ${OpenCV_INCLUDE_DIRS}
 )
 
-# Link the test executable against Google Test and the library
-# Use correct target names: GTest::gtest and GTest::gtest_main
-target_link_libraries(test_stereo_matching PRIVATE GTest::gtest GTest::gtest_main stereo_matching_lib)
+# Link the test executable against libraries
+target_link_libraries(runUnitTests
+    PRIVATE
+        cpu_lib
+        cuda_lib
+        GTest::gtest_main
+        ${OpenCV_LIBS}
+)
 
-# Enable C++17 for the test executable
-target_compile_features(test_stereo_matching PRIVATE cxx_std_17)
+# Set properties for the test executable
+set_target_properties(runUnitTests PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_RESOLVE_DEVICE_SYMBOLS ON
+)
 
-# Add a test to CTest
-add_test(NAME StereoMatchingUnitTests COMMAND test_stereo_matching)
+# Set MSVC Runtime Library for runUnitTests
+if(MSVC)
+    set_target_properties(runUnitTests PROPERTIES
+        MSVC_RUNTIME_LIBRARY "MultiThreadedDLL"
+    )
+endif()
 
-
+# Register the test
+add_test(NAME runUnitTests COMMAND runUnitTests)

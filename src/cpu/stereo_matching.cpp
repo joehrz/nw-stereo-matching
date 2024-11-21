@@ -3,39 +3,122 @@
 #include "stereo_matching.h"
 #include <algorithm>
 
-// Example: CPU-based disparity computation using a simple block matching approach
-void compute_disparity_cpu(const unsigned char* left_image, const unsigned char* right_image, int* disparity_map, int width, int height, int max_disparity) {
-    for(int y = 0; y < height; ++y){
-        for(int x = 0; x < width; ++x){
-            int best_disparity = 0;
-            int min_ssd = INT32_MAX;
-            for(int d = 0; d < max_disparity; ++d){
-                if(x - d < 0) continue;
-                int ssd = 0;
-                // Simple sum of squared differences (SSD) over a small window
-                int window_size = 5;
-                int half_window = window_size / 2;
-                for(int wy = -half_window; wy <= half_window; ++wy){
-                    for(int wx = -half_window; wx <= half_window; ++wx){
-                        int lx = x + wx;
-                        int ly = y + wy;
-                        int rx = x - d + wx;
-                        int ry = y + wy;
-                        if(lx < 0 || lx >= width || ly < 0 || ly >= height ||
-                           rx < 0 || rx >= width || ry < 0 || ry >= height){
-                            ssd += 255; // Penalize out-of-bounds
-                            continue;
-                        }
-                        int diff = static_cast<int>(left_image[ly * width + lx]) - static_cast<int>(right_image[ry * width + rx]);
-                        ssd += diff * diff;
-                    }
-                }
-                if(ssd < min_ssd){
-                    min_ssd = ssd;
-                    best_disparity = d;
-                }
-            }
-            disparity_map[y * width + x] = best_disparity;
+// Constructor
+StereoMatcher::StereoMatcher(int matchScore, int mismatchPenalty, int gapPenalty)
+    : matchScore_(matchScore), mismatchPenalty_(mismatchPenalty), gapPenalty_(gapPenalty) {}
+
+// CPU Alignment Computation
+AlignmentResult StereoMatcher::computeAlignment(const std::vector<int>& leftLine, const std::vector<int>& rightLine) {
+    int rows = leftLine.size() + 1;
+    int cols = rightLine.size() + 1;
+    std::vector<int> matrix(rows * cols, 0);
+
+    // Initialize matrix boundaries
+    initializeMatrix(matrix, rows, cols);
+
+    // Fill the matrix
+    fillMatrix(leftLine, rightLine, matrix, rows, cols);
+
+    // Perform backtracking to get disparity
+    return backtrack(leftLine, rightLine, matrix, rows, cols);
+}
+
+// Initialize DP matrix boundaries
+void StereoMatcher::initializeMatrix(std::vector<int>& matrix, int rows, int cols) {
+    for(int i = 0; i < rows; ++i) {
+        matrix[i * cols] = i * gapPenalty_;
+    }
+    for(int j = 0; j < cols; ++j) {
+        matrix[j] = j * gapPenalty_;
+    }
+}
+
+// Fill DP matrix
+void StereoMatcher::fillMatrix(const std::vector<int>& left, const std::vector<int>& right, std::vector<int>& matrix, int rows, int cols) {
+    for(int i = 1; i < rows; ++i) {
+        for(int j = 1; j < cols; ++j) {
+            int match = (left[i - 1] == right[j - 1]) ? matchScore_ : mismatchPenalty_;
+            int scoreDiag = matrix[(i - 1) * cols + (j - 1)] + match;
+            int scoreUp = matrix[(i - 1) * cols + j] + gapPenalty_;
+            int scoreLeft = matrix[i * cols + (j - 1)] + gapPenalty_;
+            matrix[i * cols + j] = std::max({scoreDiag, scoreUp, scoreLeft});
         }
     }
+}
+
+// Backtracking to determine disparity
+AlignmentResult StereoMatcher::backtrack(const std::vector<int>& left, const std::vector<int>& right,
+                                         const std::vector<int>& matrix, int rows, int cols) {
+    int i = rows - 1;
+    int j = cols - 1;
+
+    std::vector<int> leftAligned;
+    std::vector<int> rightAligned;
+
+    while(i > 0 || j > 0) {
+        int current = matrix[i * cols + j];
+
+        if(i > 0 && j > 0 &&
+           current == matrix[(i - 1) * cols + (j - 1)] +
+                     ((left[i - 1] == right[j - 1]) ? matchScore_ : mismatchPenalty_)) {
+            // Match/Mismatch
+            leftAligned.push_back(left[i - 1]);
+            rightAligned.push_back(right[j - 1]);
+            i--;
+            j--;
+        }
+        else if(i > 0 && current == matrix[(i - 1) * cols + j] + gapPenalty_) {
+            // Gap in right sequence
+            leftAligned.push_back(left[i - 1]);
+            rightAligned.push_back(-1); // -1 indicates a gap
+            i--;
+        }
+        else if(j > 0 && current == matrix[i * cols + (j - 1)] + gapPenalty_) {
+            // Gap in left sequence
+            leftAligned.push_back(-1); // -1 indicates a gap
+            rightAligned.push_back(right[j - 1]);
+            j--;
+        }
+        else {
+            break;
+        }
+    }
+
+    // Reverse the sequences since we built them backwards
+    std::reverse(leftAligned.begin(), leftAligned.end());
+    std::reverse(rightAligned.begin(), rightAligned.end());
+
+    // Compute disparity based on shifts
+    int disparity = 0;
+    size_t idxLeftPos = 0;
+    size_t idxRightPos = 0;
+    bool foundFirstMatch = false;
+
+    for(size_t idx = 0; idx < leftAligned.size(); ++idx) {
+        if(leftAligned[idx] != -1 && rightAligned[idx] != -1) {
+            // Found a match or mismatch
+            if(!foundFirstMatch) {
+                disparity = static_cast<int>(idxRightPos) - static_cast<int>(idxLeftPos);
+                foundFirstMatch = true;
+            }
+            idxLeftPos++;
+            idxRightPos++;
+        }
+        else {
+            // Handle gaps
+            if(leftAligned[idx] != -1) {
+                idxLeftPos++;
+            }
+            if(rightAligned[idx] != -1) {
+                idxRightPos++;
+            }
+        }
+    }
+
+    AlignmentResult result;
+    result.disparity = disparity;
+    result.leftAligned = leftAligned;
+    result.rightAligned = rightAligned;
+
+    return result;
 }

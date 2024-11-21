@@ -1,60 +1,92 @@
 // src/cuda/stereo_matching_cuda.cu
 
-#include "stereo_matching_kernel.h"
-#include "stereo_matching.h" // Include the main header for Image struct and other functions
+#include "stereo_matching.h"          // Include the StereoMatcher class definition
+#include "stereo_matching_kernel.h"   // Include the CUDA kernel declarations
 #include <cuda_runtime.h>
-#include <cstring>
 #include <iostream>
 
-// CUDA error checking macro
+// Error checking macro
 #define cudaCheckError(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true){
-    if (code != cudaSuccess){
-        fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-        if (abort) exit(code);
-    }
+inline void gpuAssert(cudaError_t code, const char* file, int line, bool abort=true) {
+   if (code != cudaSuccess) {
+      fprintf(stderr,"CUDA Error: %s %s %d\n", cudaGetErrorString(code), file, line);
+      if (abort) exit(code);
+   }
 }
 
-// Implement compute_disparity_cuda function
-void compute_disparity_cuda(const int* left_image, const int* right_image, int* score_matrix, int width, int height, int max_disparity) {
-    // Calculate the size of the images in bytes
-    size_t image_size = width * height * sizeof(int);
-
-    // Device pointers
-    int* d_left_image = nullptr;
-    int* d_right_image = nullptr;
-    int* d_score_matrix = nullptr;
+// Fill the DP matrix using Wavefront Parallelization
+void StereoMatcher::fillMatrixWavefrontCUDA(int* matrix, int rows, int cols, 
+                                           const std::vector<int>& left, const std::vector<int>& right) {
+    size_t size = rows * cols * sizeof(int);
+    int* d_matrix;
+    int* d_left;
+    int* d_right;
 
     // Allocate device memory
-    cudaCheckError( cudaMalloc((void**)&d_left_image, image_size) );
-    cudaCheckError( cudaMalloc((void**)&d_right_image, image_size) );
-    cudaCheckError( cudaMalloc((void**)&d_score_matrix, image_size) );
+    cudaCheckError(cudaMalloc(&d_matrix, size));
+    cudaCheckError(cudaMalloc(&d_left, left.size() * sizeof(int)));
+    cudaCheckError(cudaMalloc(&d_right, right.size() * sizeof(int)));
 
-    // Copy input images from host to device
-    cudaCheckError( cudaMemcpy(d_left_image, left_image, image_size, cudaMemcpyHostToDevice) );
-    cudaCheckError( cudaMemcpy(d_right_image, right_image, image_size, cudaMemcpyHostToDevice) );
+    // Copy data to device
+    cudaCheckError(cudaMemcpy(d_matrix, matrix, size, cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMemcpy(d_left, left.data(), left.size() * sizeof(int), cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMemcpy(d_right, right.data(), right.size() * sizeof(int), cudaMemcpyHostToDevice));
 
-    // Define block and grid sizes
-    dim3 blockSize(16, 16);
-    dim3 gridSize( (width + blockSize.x - 1) / blockSize.x,
-                  (height + blockSize.y - 1) / blockSize.y );
+    // Define CUDA kernel parameters
+    int threadsPerBlock = 256;
 
-    // Launch the CUDA kernel
-    disparity_kernel<<<gridSize, blockSize>>>(d_left_image, d_right_image, d_score_matrix, width, height, max_disparity);
+    // Process diagonals starting from 1 to rows + cols - 2 (0-based indexing)
+    for(int diagonal = 1; diagonal < (rows + cols - 1); ++diagonal) {
+        // Calculate number of elements in this diagonal
+        int numElements = 0;
+        if(diagonal < rows)
+            numElements = diagonal;
+        else
+            numElements = rows + cols - 1 - diagonal;
 
-    // Check for any errors launching the kernel
-    cudaCheckError( cudaGetLastError() );
+        // Calculate grid size
+        int blocks = (numElements + threadsPerBlock - 1) / threadsPerBlock;
+        if(blocks == 0) blocks = 1;
 
-    // Wait for the GPU to finish
-    cudaCheckError( cudaDeviceSynchronize() );
+        // Launch kernel
+        fillMatrixWavefrontKernel<<<blocks, threadsPerBlock>>>(d_matrix, rows, cols, 
+                                                               d_left, d_right,
+                                                               matchScore_, mismatchPenalty_, gapPenalty_,
+                                                               diagonal);
+        // Check for kernel launch errors
+        cudaCheckError(cudaGetLastError());
 
-    // Copy the disparity map back to host
-    cudaCheckError( cudaMemcpy(score_matrix, d_score_matrix, image_size, cudaMemcpyDeviceToHost) );
+        // Synchronize to ensure completion before next diagonal
+        cudaCheckError(cudaDeviceSynchronize());
+    }
+
+    // Copy result back to host
+    cudaCheckError(cudaMemcpy(matrix, d_matrix, size, cudaMemcpyDeviceToHost));
 
     // Free device memory
-    cudaFree(d_left_image);
-    cudaFree(d_right_image);
-    cudaFree(d_score_matrix);
+    cudaCheckError(cudaFree(d_matrix));
+    cudaCheckError(cudaFree(d_left));
+    cudaCheckError(cudaFree(d_right));
 }
 
 
+// CUDA Wavefront Parallelization Alignment
+AlignmentResult StereoMatcher::computeAlignmentCUDA(const std::vector<int>& leftLine, const std::vector<int>& rightLine) {
+    int rows = leftLine.size() + 1;
+    int cols = rightLine.size() + 1;
+    std::vector<int> matrix(rows * cols, 0);
+
+    // Initialize matrix boundaries on host
+    for(int i = 0; i < rows; ++i) {
+        matrix[i * cols] = i * gapPenalty_;
+    }
+    for(int j = 0; j < cols; ++j) {
+        matrix[j] = j * gapPenalty_;
+    }
+
+    // Fill the matrix using CUDA Wavefront Parallelization
+    fillMatrixWavefrontCUDA(matrix.data(), rows, cols, leftLine, rightLine);
+
+    // Perform backtracking on the CPU
+    return backtrack(leftLine, rightLine, matrix, rows, cols);
+}

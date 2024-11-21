@@ -16,13 +16,28 @@ This project extends the **Needleman–Wunsch algorithm**, traditionally used fo
 ```bash
 stereo-matching-needleman/
 │
-├── README.md                # Project description and setup instructions
-├── src/                     # Source files
-│   ├── nw_stereo_matching.cpp  # Serial version of the stereo matching algorithm
-│   ├── nw_stereo_matching.cu   # CUDA version (to be added later)
-│   └── CMakeLists.txt        # CMake configuration for building the project (optional)
-├── images/                  # Folder for stereo images used in testing
-│   └── left_image.png        # Sample left stereo image
-│   └── right_image.png       # Sample right stereo image
-└── docs/                    # Documentation for the project
-    └── algorithm.md          # Detailed explanation of the modified Needleman-Wunsch algorithm for stereo matching
+├── README.md                           # Project description and setup instructions
+├── CMakeLists.txt                      # CMake configuration for building the project 
+├── src/                                # Source files
+|   ├── main.cpp                                   
+│   ├── cpu/                            # Serial version of the stereo matching algorithm  
+|   |   └── stereo_matching.cpp
+│   │    
+│   ├── cuda/                           # CUDA version 
+│   │   ├── stereo_matching_cuda.cu                
+│   │   ├── stereo_matching_kernel.cu
+|   |   └── stereo_matching_kernel.h
+|   | 
+|
+├── include/
+│   └── stereo_matching.h           
+├── data/
+│   ├── Tsukuba/                    # Folder for stereo images used in testing
+│       ├── tsukuba_left.png        # Sample left stereo image
+│       └── tsukuba_right.png       # Sample right stereo image
+├── tests/
+│   ├── CMakeLists.txt 
+│   └──unit
+|       └── test_stereo_matching.cpp
+└── docs/                       # Documentation for the project
+    └── algorithm.md            # Detailed explanation of the modified Needleman-Wunsch algorithm for stereo matching
