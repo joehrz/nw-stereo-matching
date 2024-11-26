@@ -25,7 +25,6 @@ public:
     // CUDA Wavefront Parallelization version
     AlignmentResult computeAlignmentCUDA(const std::vector<int>& leftLine, const std::vector<int>& rightLine);
 
-
 private:
     int matchScore_;
     int mismatchPenalty_;

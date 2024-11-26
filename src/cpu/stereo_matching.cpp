@@ -19,7 +19,7 @@ AlignmentResult StereoMatcher::computeAlignment(const std::vector<int>& leftLine
     // Fill the matrix
     fillMatrix(leftLine, rightLine, matrix, rows, cols);
 
-    // Perform backtracking to get disparity
+    // Perform backtracking to get alignment
     return backtrack(leftLine, rightLine, matrix, rows, cols);
 }
 
