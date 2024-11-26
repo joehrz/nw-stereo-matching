@@ -72,39 +72,6 @@ Implementing the Needleman–Wunsch algorithm on CUDA involves parallelizing the
 - **Memory Coalescing**
 - **Minimizing Thread Divergence**
 
-## Project Structure
-```bash
-stereo-matching-needleman/
-│
-├── README.md                           # Project description and setup instructions
-├── CMakeLists.txt                      # CMake configuration for building the project 
-├── src/                                # Source files
-|   ├── main.cpp                                   
-│   ├── cpu/                            # Serial version of the stereo matching algorithm  
-|   |   └── stereo_matching.cpp
-│   │    
-│   ├── cuda/                           # CUDA version 
-│   │   ├── stereo_matching_cuda.cu                
-│   │   ├── stereo_matching_kernel.cu
-|   |   └── stereo_matching_kernel.h
-|   | 
-|
-├── include/
-│   └── stereo_matching.h           
-├── data/
-│   ├── cone/                    # Folder for stereo images used in testing
-│       ├── im2.png                 # Sample left stereo image
-│       └── im6.png                 # Sample right stereo image
-│       └── disp2.png                 # Sample right stereo image
-|
-├── tests/
-│   ├── CMakeLists.txt 
-│   └──unit
-|       └── test_stereo_matching.cpp
-└── docs/                       # Documentation for the project
-    └── algorithm.md            # Detailed explanation of the modified Needleman-Wunsch algorithm for stereo matching
-
-
 ## Building the Project
 
 ### Prerequisites
@@ -128,4 +95,39 @@ stereo-matching-needleman/
     cmake .. -DCMAKE_BUILD_TYPE=Release
     cmake --build . --config Release
     ./stereo_matching [strategy] left_image.png right_image.png ground_truth.png
+    
+## Project Structure
+```bash
+stereo-matching-needleman/
+│
+├── README.md                           # Project description and setup instructions
+├── CMakeLists.txt                      # CMake configuration for building the project 
+├── src/                                # Source files
+|   ├── main.cpp                                   
+│   ├── cpu/                            # Serial version of the stereo matching algorithm  
+|   |   └── stereo_matching.cpp
+│   │    
+│   ├── cuda/                           # CUDA version 
+│       ├── stereo_matching_cuda.cu                
+│       ├── stereo_matching_kernel.cu
+|       └── stereo_matching_kernel.h
+|    
+|
+├── include/
+│   └── stereo_matching.h           
+├── data/
+│   ├── cone/                    # Folder for stereo images used in testing
+│       ├── im2.png                 # Sample left stereo image
+│       └── im6.png                 # Sample right stereo image
+│       └── disp2.png                 # Sample right stereo image
+|
+├── tests/
+│   ├── CMakeLists.txt 
+│   └──unit
+|       └── test_stereo_matching.cpp
+└── docs/                       # Documentation for the project
+    └── algorithm.md            # Detailed explanation of the modified Needleman-Wunsch algorithm for stereo matching
+
+
+
    
