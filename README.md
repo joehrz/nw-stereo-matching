@@ -62,15 +62,77 @@ The Needleman–Wunsch algorithm is a dynamic programming method for sequence al
 - **Computational Complexity:** Standard algorithm has \( O(N^2) \) time and space complexity.
 - **Independence of Scanlines:** Processing scanlines independently may ignore vertical coherence.
 
-### CUDA Parallelization
+## CUDA Parallelization
 
 Implementing the Needleman–Wunsch algorithm on CUDA involves parallelizing the dynamic programming matrix computation. We utilize wavefront parallelization, where anti-diagonals of the matrix are computed in parallel, respecting data dependencies.
 
-**Optimizations:**
+### Optimizations:
 
 - **Shared Memory Usage**
 - **Memory Coalescing**
 - **Minimizing Thread Divergence**
+
+## CUDA Enhancements and Optimizations
+
+To harness the full potential of CUDA and significantly improve the performance of the Needleman–Wunsch stereo matching algorithm, several enhancements and optimizations have been implemented on the CUDA side:
+
+1. **Single Kernel Launch for All Diagonals**
+   
+   - **Description:** Instead of launching a separate CUDA kernel for each diagonal of the dynamic programming (DP) matrix, a single kernel launch handles all diagonals. This approach drastically reduces kernel launch overhead, especially for large images with numerous diagonals.
+   
+   - **Benefits:**
+     - **Reduced Overhead:** Minimizes the time spent on initiating kernel launches.
+     - **Enhanced Parallelism:** Allows better utilization of CUDA cores by distributing work across threads more efficiently.
+
+2. **Shared Memory Caching**
+   
+   - **Description:** Utilizes shared memory to cache frequently accessed scanline data (`d_left` and `d_right`). By loading these values into shared memory, the kernel reduces the number of global memory accesses, which are slower compared to shared memory.
+   
+   - **Benefits:**
+     - **Lower Latency:** Shared memory provides faster access times, speeding up data retrieval.
+     - **Increased Throughput:** Reduces the bandwidth demand on global memory, allowing for higher data throughput.
+
+3. **Optimized Memory Access Patterns**
+   
+   - **Description:** Ensures that global memory accesses are coalesced, meaning that consecutive threads access consecutive memory addresses. This optimization maximizes memory throughput and reduces memory transaction overhead.
+   
+   - **Benefits:**
+     - **Improved Memory Bandwidth Utilization:** Maximizes the efficiency of data transfers between global memory and CUDA cores.
+     - **Reduced Memory Latency:** Enhances the speed of memory operations, contributing to overall performance gains.
+
+4. **Loop Unrolling and Inlining**
+   
+   - **Description:** Applies loop unrolling techniques within the CUDA kernel to decrease loop control overhead and increase instruction-level parallelism. Additionally, small functions are inlined to eliminate function call overhead.
+   
+   - **Benefits:**
+     - **Higher Instruction Throughput:** Allows the compiler to better optimize instruction scheduling and parallel execution.
+     - **Reduced Overhead:** Lowers the number of instructions related to loop management and function calls.
+
+5. **CUDA Streams for Concurrent Operations**
+   
+   - **Description:** Implements CUDA streams to overlap data transfers between the host (CPU) and device (GPU) with kernel executions. This concurrency ensures that the GPU remains busy performing computations while simultaneously handling data transfers.
+   
+   - **Benefits:**
+     - **Increased GPU Utilization:** Keeps the GPU occupied, reducing idle times.
+     - **Enhanced Throughput:** Overlapping operations lead to more efficient execution and faster overall processing times.
+
+6. **Tiling Techniques for Enhanced Parallelism**
+   
+   - **Description:** Divides the DP matrix into smaller tiles that can be processed independently by different thread blocks. This division allows multiple tiles to be computed in parallel, maximizing the use of available CUDA cores.
+   
+   - **Benefits:**
+     - **Maximized Parallelism:** Facilitates the concurrent processing of multiple matrix regions.
+     - **Scalability:** Improves performance scalability with larger images by efficiently distributing work.
+
+7. **Persistent Memory Allocation**
+   
+   - **Description:** Allocates device memory once and reuses it across multiple kernel launches or iterations. This strategy avoids the overhead of repeated memory allocations and deallocations.
+   
+   - **Benefits:**
+     - **Reduced Overhead:** Lowers the time spent on memory management operations.
+     - **Improved Performance:** Enhances data access speed by maintaining data residency on the GPU.
+
+
 
 ## Building the Project
 
