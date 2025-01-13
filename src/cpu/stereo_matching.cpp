@@ -37,7 +37,10 @@ void StereoMatcher::initializeMatrix(std::vector<int>& matrix, int rows, int col
 void StereoMatcher::fillMatrix(const std::vector<int>& left, const std::vector<int>& right, std::vector<int>& matrix, int rows, int cols) {
     for(int i = 1; i < rows; ++i) {
         for(int j = 1; j < cols; ++j) {
-            int match = (left[i - 1] == right[j - 1]) ? matchScore_ : mismatchPenalty_;
+            //int match = (left[i - 1] == right[j - 1]) ? matchScore_ : mismatchPenalty_;
+            int intensityDiff = std::abs(left[i - 1] - right[j - 1]);
+            int truncatedDiff = std::min(intensityDiff, 20);
+            int match = - truncatedDiff;
             int scoreDiag = matrix[(i - 1) * cols + (j - 1)] + match;
             int scoreUp = matrix[(i - 1) * cols + j] + gapPenalty_;
             int scoreLeft = matrix[i * cols + (j - 1)] + gapPenalty_;

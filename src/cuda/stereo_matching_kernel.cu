@@ -29,13 +29,19 @@ __global__ void fillMatrixWavefrontKernel(int* d_matrix, int rows, int cols,
     int left_index = i * cols + (j - 1);
 
     // Compute match/mismatch
-    int match = (d_left[i - 1] == d_right[j - 1]) ? matchScore : mismatchPenalty;
+    // Instead of (d_left[i - 1] == d_right[j - 1]) ? matchScore : mismatchPenalty
+    // we define a difference-based cost:
+    int intensityDiff = abs(d_left[i - 1] - d_right[j - 1]);
+    int truncatedDiff = min(intensityDiff, 20);  // example threshold
+    // Because the NW approach is "maximizing", we might interpret bigger difference as negative.
+    int costFromDiag = d_matrix[diag_index] - truncatedDiff; 
+
+
 
     // Calculate scores
-    int scoreDiag = d_matrix[diag_index] + match;
-    int scoreUp = d_matrix[up_index] + gapPenalty;
+    int scoreDiag = costFromDiag;
+    int scoreUp   = d_matrix[up_index]   + gapPenalty;
     int scoreLeft = d_matrix[left_index] + gapPenalty;
 
-    // Update the matrix with the maximum score
     d_matrix[matrix_index] = max(max(scoreDiag, scoreUp), scoreLeft);
 }
