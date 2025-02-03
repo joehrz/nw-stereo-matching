@@ -77,38 +77,19 @@ Implementing the Needleman–Wunsch algorithm on CUDA involves parallelizing the
     cmake --build . --config Release
     ./stereo_matching [strategy] left_image.png right_image.png ground_truth.png
     
-## Project Structure
-```bash
-stereo-matching-needleman/
-│
-├── README.md                           # Project description and setup instructions
-├── CMakeLists.txt                      # CMake configuration for building the project 
-├── src/                                # Source files
-│   ├── main.cpp                                   
-│   ├── cpu/                            # Serial version of the stereo matching algorithm  
-│   │   └── stereo_matching.cpp
-│   │    
-│   ├── cuda/                           # CUDA version 
-│       ├── stereo_matching_cuda.cu                
-│       ├── stereo_matching_kernel.cu
-│       └── stereo_matching_kernel.h
-│    
-│
-├── include/
-│   └── stereo_matching.h           
-├── data/
-│   ├── cone/                    # Folder for stereo images used in testing
-│       ├── im2.png                 # Sample left stereo image
-│       └── im6.png                 # Sample right stereo image
-│       └── disp2.png                 # Sample right stereo image
-│       └── disp6.png 
-│
-├── tests/
-│   ├── CMakeLists.txt 
-│   └──unit
-│       └── test_stereo_matching.cpp
-└── docs/                       # Documentation for the project
-    └── algorithm.md            # Detailed explanation of the modified Needleman-Wunsch algorithm for stereo matchin
+## Things to do next
+
+### Short-Term Goals
+- **Kernel Fusion:**  
+  Reduce kernel launch overhead by fusing multiple diagonals into a single kernel launch.
+- **Concurrent Processing:**  
+  Refactor scanline processing to leverage CUDA streams for concurrent execution of independent scanlines.
+
+### Long-Term Goals
+- **Shared Memory Tiling:**  
+  Investigate using shared memory to tile large DP matrices, reducing global memory latency.
+- **Profiling and Optimization:**  
+  Conduct extensive profiling and iterative optimization to fine-tune thread configurations and improve memory access patterns.
 
 
    
