@@ -23,11 +23,11 @@ set_target_properties(runUnitTests PROPERTIES
 )
 
 # Set MSVC Runtime Library for runUnitTests
-if(MSVC)
-    set_target_properties(runUnitTests PROPERTIES
-        MSVC_RUNTIME_LIBRARY "MultiThreadedDLL"
-    )
-endif()
+#if(MSVC)
+#    set_target_properties(runUnitTests PROPERTIES
+#        MSVC_RUNTIME_LIBRARY "MultiThreadedDLL"
+#    )
+#endif()
 
 # Register the test
 add_test(NAME runUnitTests COMMAND runUnitTests)
