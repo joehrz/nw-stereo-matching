@@ -65,7 +65,7 @@ Implementing the Needleman–Wunsch algorithm on CUDA involves parallelizing the
 
 ### Build Instructions
 
-1. **Clone the Repository:**g
+1. **Clone the Repository:**
 
 
    ```bash
@@ -84,16 +84,16 @@ stereo-matching-needleman/
 ├── README.md                           # Project description and setup instructions
 ├── CMakeLists.txt                      # CMake configuration for building the project 
 ├── src/                                # Source files
-|   ├── main.cpp                                   
+│   ├── main.cpp                                   
 │   ├── cpu/                            # Serial version of the stereo matching algorithm  
-|   |   └── stereo_matching.cpp
+│   │   └── stereo_matching.cpp
 │   │    
 │   ├── cuda/                           # CUDA version 
 │       ├── stereo_matching_cuda.cu                
 │       ├── stereo_matching_kernel.cu
-|       └── stereo_matching_kernel.h
-|    
-|
+│       └── stereo_matching_kernel.h
+│    
+│
 ├── include/
 │   └── stereo_matching.h           
 ├── data/
@@ -102,11 +102,11 @@ stereo-matching-needleman/
 │       └── im6.png                 # Sample right stereo image
 │       └── disp2.png                 # Sample right stereo image
 │       └── disp6.png 
-|
+│
 ├── tests/
 │   ├── CMakeLists.txt 
 │   └──unit
-|       └── test_stereo_matching.cpp
+│       └── test_stereo_matching.cpp
 └── docs/                       # Documentation for the project
     └── algorithm.md            # Detailed explanation of the modified Needleman-Wunsch algorithm for stereo matchin
 
