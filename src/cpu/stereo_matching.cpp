@@ -51,7 +51,7 @@ void StereoMatcher::fillMatrix(const std::vector<int>& left, const std::vector<i
 
 // Backtracking to determine disparity
 AlignmentResult StereoMatcher::backtrack(const std::vector<int>& left, const std::vector<int>& right,
-                                         const std::vector<int>& matrix, int rows, int cols) {
+                                           const std::vector<int>& matrix, int rows, int cols) {
     int i = rows - 1;
     int j = cols - 1;
 
@@ -60,68 +60,65 @@ AlignmentResult StereoMatcher::backtrack(const std::vector<int>& left, const std
 
     while(i > 0 || j > 0) {
         int current = matrix[i * cols + j];
+        bool moved = false;
 
-        if(i > 0 && j > 0 &&
-           current == matrix[(i - 1) * cols + (j - 1)] +
-                     ((left[i - 1] == right[j - 1]) ? matchScore_ : mismatchPenalty_)) {
-            // Match/Mismatch
+        // Diagonal move: use intensity difference cost
+        if(i > 0 && j > 0) {
+            int intensityDiff = std::abs(left[i - 1] - right[j - 1]);
+            int truncatedDiff = std::min(intensityDiff, 20);
+            if(current == matrix[(i - 1) * cols + (j - 1)] - truncatedDiff) {
+                leftAligned.push_back(left[i - 1]);
+                rightAligned.push_back(right[j - 1]);
+                i--;
+                j--;
+                moved = true;
+            }
+        }
+        // Up move (gap in right)
+        if(!moved && i > 0 && current == matrix[(i - 1) * cols + j] + gapPenalty_) {
             leftAligned.push_back(left[i - 1]);
-            rightAligned.push_back(right[j - 1]);
+            rightAligned.push_back(-1); // gap indicator
             i--;
-            j--;
+            moved = true;
         }
-        else if(i > 0 && current == matrix[(i - 1) * cols + j] + gapPenalty_) {
-            // Gap in right sequence
-            leftAligned.push_back(left[i - 1]);
-            rightAligned.push_back(-1); // -1 indicates a gap
-            i--;
-        }
-        else if(j > 0 && current == matrix[i * cols + (j - 1)] + gapPenalty_) {
-            // Gap in left sequence
-            leftAligned.push_back(-1); // -1 indicates a gap
+        // Left move (gap in left)
+        if(!moved && j > 0 && current == matrix[i * cols + (j - 1)] + gapPenalty_) {
+            leftAligned.push_back(-1); // gap indicator
             rightAligned.push_back(right[j - 1]);
             j--;
+            moved = true;
         }
-        else {
+        if(!moved) {
+            // If none of the above conditions met (should rarely happen), break out.
             break;
         }
     }
 
-    // Reverse the sequences since we built them backwards
+    // Reverse sequences since we built them backwards
     std::reverse(leftAligned.begin(), leftAligned.end());
     std::reverse(rightAligned.begin(), rightAligned.end());
 
-    // Compute disparity based on shifts
-    int disparity = 0;
-    size_t idxLeftPos = 0;
-    size_t idxRightPos = 0;
-    bool foundFirstMatch = false;
-
-    for(size_t idx = 0; idx < leftAligned.size(); ++idx) {
-        if(leftAligned[idx] != -1 && rightAligned[idx] != -1) {
-            // Found a match or mismatch
-            if(!foundFirstMatch) {
-                disparity = static_cast<int>(idxRightPos) - static_cast<int>(idxLeftPos);
-                foundFirstMatch = true;
-            }
-            idxLeftPos++;
-            idxRightPos++;
-        }
-        else {
-            // Handle gaps
-            if(leftAligned[idx] != -1) {
-                idxLeftPos++;
-            }
-            if(rightAligned[idx] != -1) {
-                idxRightPos++;
-            }
-        }
-    }
-
+    // Optionally, compute a combined disparity (e.g., average of differences)
+    // Here, we simply store the first encountered disparity.
     AlignmentResult result;
-    result.disparity = disparity;
     result.leftAligned = leftAligned;
     result.rightAligned = rightAligned;
-
+    // You might choose to compute result.disparity as the average shift:
+    int sumDisp = 0, count = 0;
+    size_t idxLeftPos = 0, idxRightPos = 0;
+    for(size_t idx = 0; idx < leftAligned.size(); ++idx) {
+        if(leftAligned[idx] != -1 && rightAligned[idx] != -1) {
+            sumDisp += (static_cast<int>(idxRightPos) - static_cast<int>(idxLeftPos));
+            count++;
+            idxLeftPos++;
+            idxRightPos++;
+        } else {
+            if(leftAligned[idx] != -1)
+                idxLeftPos++;
+            if(rightAligned[idx] != -1)
+                idxRightPos++;
+        }
+    }
+    result.disparity = (count > 0) ? sumDisp / count : 0;
     return result;
 }
