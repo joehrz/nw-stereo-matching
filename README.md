@@ -77,7 +77,7 @@ Implementing the Needleman–Wunsch algorithm on CUDA involves parallelizing the
     cmake --build . --config Release
     ./stereo_matching [strategy] left_image.png right_image.png ground_truth.png
     
-## Things to do next
+## Future Work and Optimization Roadmap
 
 ### Short-Term Goals
 - **Kernel Fusion:**  
@@ -87,9 +87,12 @@ Implementing the Needleman–Wunsch algorithm on CUDA involves parallelizing the
 
 ### Long-Term Goals
 - **Shared Memory Tiling:**  
-  Investigate using shared memory to tile large DP matrices, reducing global memory latency.
+  Investigate using shared memory to tile large DP matrices, thereby reducing global memory latency.
 - **Profiling and Optimization:**  
-  Conduct extensive profiling and iterative optimization to fine-tune thread configurations and improve memory access patterns.
+  Conduct extensive profiling and iterative optimization to fine-tune thread configurations and memory access patterns.
+
+---
+
 
 
    

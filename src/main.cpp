@@ -1,5 +1,3 @@
-// src/main.cpp
-
 #include <iostream>
 #include <numeric> // For std::accumulate
 #include <opencv2/opencv.hpp>
@@ -11,7 +9,7 @@
 int main(int argc, char** argv) {
     if(argc != 5) {
         std::cerr << "Usage: ./stereo_matching [strategy] left_image.png right_image.png ground_truth.png" << std::endl;
-        std::cerr << "Strategies: cpu, cuda_wavefront" << std::endl;
+        std::cerr << "Strategies: cpu, cuda_wavefront, cuda_wavefront_fused" << std::endl;
         return -1;
     }
 
@@ -92,11 +90,14 @@ int main(int argc, char** argv) {
         else if(strategy == "cuda_wavefront") {
             result = matcher.computeAlignmentCUDA(leftLine, rightLine);
         }
+        else if(strategy == "cuda_wavefront_fused") {
+            result = matcher.computeAlignmentCUDA_Fused(leftLine, rightLine);
+        }
         else {
             #pragma omp critical
             {
                 std::cerr << "Unknown strategy: " << strategy << std::endl;
-                std::cerr << "Available strategies: cpu, cuda_wavefront" << std::endl;
+                std::cerr << "Available strategies: cpu, cuda_wavefront, cuda_wavefront_fused" << std::endl;
             }
             continue; // Skip this row
         }
@@ -213,12 +214,43 @@ int main(int argc, char** argv) {
     std::cout << "Root Mean Squared Error (RMSE) (NW): " << RMSE << std::endl;
     std::cout << "Percentage of Bad Pixels (PBP) (NW): " << PBP << "%" << std::endl;
 
-    // Optional: Visualize the disparity map
+    // Optional: Visualize the disparity map using the computed dynamic range
+    cv::Mat validMask = (disparityMap >= 0); // Create a mask where valid pixels are true
+    double computedMin, computedMax;
+    cv::minMaxLoc(disparityMap, &computedMin, &computedMax, nullptr, nullptr, validMask);
+
+
+
+    // Define ground truth range (adjust these values based on your dataset)
+    float gtMin = 0.0f;
+    float gtMax = 0.859375f;
+
+    // Create a new matrix for the calibrated disparities
+    cv::Mat calibratedDisp = disparityMap.clone();
+
+    // Step 2: Remap each valid disparity value to the ground truth range
+    for (int row = 0; row < disparityMap.rows; ++row) {
+        for (int col = 0; col < disparityMap.cols; ++col) {
+            float d = disparityMap.at<float>(row, col);
+            if (d >= 0) { // Only process valid disparities
+                float d_calibrated = ((d - static_cast<float>(computedMin)) / 
+                                    (static_cast<float>(computedMax) - static_cast<float>(computedMin)))
+                                   * (gtMax - gtMin) + gtMin;
+                calibratedDisp.at<float>(row, col) = d_calibrated;
+            }
+        }
+    }
+
+    // Step 3: Convert calibrated disparity map to 8-bit for visualization.
+    // Since calibrated values are in [gtMin, gtMax], scale by 255/(gtMax - gtMin)
     cv::Mat disparityMapVis;
-    disparityMap.convertTo(disparityMapVis, CV_8U, 255.0 / maxVal); // Normalize based on maximum disparity
+    calibratedDisp.convertTo(disparityMapVis, CV_8U, 255.0 / (gtMax - gtMin));
     cv::applyColorMap(disparityMapVis, disparityMapVis, cv::COLORMAP_JET);
+
+    // Save the resulting disparity image
     cv::imwrite("DisparityMap_NW.png", disparityMapVis);
     std::cout << "Disparity Map saved to: DisparityMap_NW.png" << std::endl;
+
 
     return 0;
 }

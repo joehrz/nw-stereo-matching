@@ -72,6 +72,44 @@ void StereoMatcher::fillMatrixWavefrontCUDA(int* matrix, int rows, int cols,
     cudaCheckError(cudaFree(d_right));
 }
 
+void StereoMatcher::fillMatrixWavefrontCUDA_Fused(int* matrix, int rows, int cols, 
+                                                  const std::vector<int>& left, const std::vector<int>& right) {
+    size_t matrixSize = rows * cols * sizeof(int);
+    size_t leftSize = (rows - 1) * sizeof(int);
+    size_t rightSize = (cols - 1) * sizeof(int);
+
+    int* d_matrix;
+    int* d_left;
+    int* d_right;
+
+    cudaCheckError(cudaMalloc(&d_matrix, matrixSize));
+    cudaCheckError(cudaMalloc(&d_left, leftSize));
+    cudaCheckError(cudaMalloc(&d_right, rightSize));
+
+    cudaCheckError(cudaMemcpy(d_matrix, matrix, matrixSize, cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMemcpy(d_left, left.data(), leftSize, cudaMemcpyHostToDevice));
+    cudaCheckError(cudaMemcpy(d_right, right.data(), rightSize, cudaMemcpyHostToDevice));
+
+    int threadsPerBlock = 256;
+    int totalDiagonals = rows + cols - 1;
+    int groupSize = 10;  // Fuse 10 diagonals per kernel launch.
+    for (int startDiag = 1; startDiag < totalDiagonals; startDiag += groupSize) {
+        int endDiag = std::min(startDiag + groupSize - 1, totalDiagonals - 1);
+        // Launch fused kernel for a group of diagonals.
+        fusedFillMatrixKernel<<<1, threadsPerBlock>>>(d_matrix, rows, cols,
+                                                       d_left, d_right,
+                                                       gapPenalty_, startDiag, endDiag);
+        cudaCheckError(cudaGetLastError());
+        cudaCheckError(cudaDeviceSynchronize());
+    }
+
+    cudaCheckError(cudaMemcpy(matrix, d_matrix, matrixSize, cudaMemcpyDeviceToHost));
+
+    cudaCheckError(cudaFree(d_matrix));
+    cudaCheckError(cudaFree(d_left));
+    cudaCheckError(cudaFree(d_right));
+}
+
 // CUDA Wavefront Parallelization Alignment
 AlignmentResult StereoMatcher::computeAlignmentCUDA(const std::vector<int>& leftLine, const std::vector<int>& rightLine) {
     int rows = leftLine.size() + 1;
@@ -90,5 +128,23 @@ AlignmentResult StereoMatcher::computeAlignmentCUDA(const std::vector<int>& left
     fillMatrixWavefrontCUDA(matrix.data(), rows, cols, leftLine, rightLine);
 
     // Perform backtracking on the CPU
+    return backtrack(leftLine, rightLine, matrix, rows, cols);
+}
+
+// Fused CUDA Wavefront Parallelization Alignment
+AlignmentResult StereoMatcher::computeAlignmentCUDA_Fused(const std::vector<int>& leftLine, const std::vector<int>& rightLine) {
+    int rows = leftLine.size() + 1;
+    int cols = rightLine.size() + 1;
+    std::vector<int> matrix(rows * cols, 0);
+
+    // Initialize boundaries.
+    for (int i = 0; i < rows; ++i) {
+        matrix[i * cols] = i * gapPenalty_;
+    }
+    for (int j = 0; j < cols; ++j) {
+        matrix[j] = j * gapPenalty_;
+    }
+
+    fillMatrixWavefrontCUDA_Fused(matrix.data(), rows, cols, leftLine, rightLine);
     return backtrack(leftLine, rightLine, matrix, rows, cols);
 }

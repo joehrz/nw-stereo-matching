@@ -4,7 +4,6 @@
 #define STEREO_MATCHING_H
 
 #include <vector>
-#include <string>
 
 // Structure to hold alignment results
 struct AlignmentResult {
@@ -25,6 +24,8 @@ public:
     // CUDA Wavefront Parallelization version
     AlignmentResult computeAlignmentCUDA(const std::vector<int>& leftLine, const std::vector<int>& rightLine);
 
+    AlignmentResult computeAlignmentCUDA_Fused(const std::vector<int>& leftline, const std::vector<int>& rightline);
+
 private:
     int matchScore_;
     int mismatchPenalty_;
@@ -38,6 +39,9 @@ private:
     // CUDA helper function
     void fillMatrixWavefrontCUDA(int* matrix, int rows, int cols, 
                                  const std::vector<int>& left, const std::vector<int>& right);
+
+    void fillMatrixWavefrontCUDA_Fused(int* matrix, int rows, int cols,
+                                       const std::vector<int>& left, const std::vector<int>& right);
 };
 
 #endif // STEREO_MATCHING_H
