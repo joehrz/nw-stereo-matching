@@ -28,10 +28,11 @@ __global__ void fillMatrixWavefrontKernel(int* d_matrix, int rows, int cols,
     int diag_index = (i - 1) * cols + (j - 1);
     int up_index   = (i - 1) * cols + j;
     int left_index = i * cols + (j - 1);
-    
+    //////////////////////////////////////////////////////////////////////
     int intensityDiff = abs(d_left[i - 1] - d_right[j - 1]);
     int truncatedDiff = min(intensityDiff, 20);
     int scoreDiag = d_matrix[diag_index] - truncatedDiff;
+    //////////////////////////////////////////////////////////////////////
     int scoreUp   = d_matrix[up_index] + gapPenalty;
     int scoreLeft = d_matrix[left_index] + gapPenalty;
     
