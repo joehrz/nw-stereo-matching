@@ -38,9 +38,11 @@ void StereoMatcher::fillMatrix(const std::vector<int>& left, const std::vector<i
     for(int i = 1; i < rows; ++i) {
         for(int j = 1; j < cols; ++j) {
             //int match = (left[i - 1] == right[j - 1]) ? matchScore_ : mismatchPenalty_;
+            //////////////////////////////////////////////////////////////////////
             int intensityDiff = std::abs(left[i - 1] - right[j - 1]);
             int truncatedDiff = std::min(intensityDiff, 20);
             int match = - truncatedDiff;
+            //////////////////////////////////////////////////////////////////////
             int scoreDiag = matrix[(i - 1) * cols + (j - 1)] + match;
             int scoreUp = matrix[(i - 1) * cols + j] + gapPenalty_;
             int scoreLeft = matrix[i * cols + (j - 1)] + gapPenalty_;
@@ -108,7 +110,8 @@ AlignmentResult StereoMatcher::backtrack(const std::vector<int>& left, const std
     size_t idxLeftPos = 0, idxRightPos = 0;
     for(size_t idx = 0; idx < leftAligned.size(); ++idx) {
         if(leftAligned[idx] != -1 && rightAligned[idx] != -1) {
-            sumDisp += (static_cast<int>(idxRightPos) - static_cast<int>(idxLeftPos));
+            sumDisp +=  (static_cast<int>(idxLeftPos) - static_cast<int>(idxRightPos));
+            //sumDisp += (static_cast<int>(idxRightPos) - static_cast<int>(idxLeftPos));
             count++;
             idxLeftPos++;
             idxRightPos++;
