@@ -64,6 +64,13 @@ int main(int argc, char** argv) {
     int matchScore = 12;         // Increased reward for matches
     int mismatchPenalty = -3;    // Reduced penalty for mismatches
     int gapPenalty = -5;         // Reduced penalty for gaps
+
+    //////////////////////////////////////////////////////////////////////
+    //int matchScore = 5;       
+    //int mismatchPenalty = -4; 
+    //int gapPenalty = -7;      
+    //////////////////////////////////////////////////////////////////////
+
     StereoMatcher matcher(matchScore, mismatchPenalty, gapPenalty);
 
     // Start timing for NW method
@@ -111,7 +118,8 @@ int main(int argc, char** argv) {
         for(size_t idx = 0; idx < result.leftAligned.size(); ++idx) {
             if(result.leftAligned[idx] != -1 && result.rightAligned[idx] != -1) {
                 // Assign disparity based on positional difference
-                int disparity = static_cast<int>(idxRightPos) - static_cast<int>(idxLeftPos);
+                //int disparity = static_cast<int>(idxRightPos) - static_cast<int>(idxLeftPos);
+                int disparity = static_cast<int>(idxLeftPos) - static_cast<int>(idxRightPos);
                 if(idxLeftPos < estimatedDisparities.size()) {
                     estimatedDisparities[idxLeftPos] = static_cast<float>(disparity);
                 }
@@ -148,7 +156,10 @@ int main(int argc, char** argv) {
 
     for(int row = 0; row < totalRows; ++row) {
         for(int col = 0; col < totalCols; ++col) {
-            float estDisp = disparityMap.at<float>(row, col);
+            //////////////////////////////////////////////////////////////////////
+            //float estDisp = disparityMap.at<float>(row, col);
+            //////////////////////////////////////////////////////////////////////
+            float estDisp = disparityMap.at<float>(row, col) * scalingFactor;
             float gtDisp = gtDisparityFloat.at<float>(row, col);
 
             if(estDisp >= 0 && gtDisp > 0) { // Valid disparities
@@ -170,7 +181,8 @@ int main(int argc, char** argv) {
         double totalSqError = 0.0;
         for(int row = 0; row < totalRows; ++row) {
             for(int col = 0; col < totalCols; ++col) {
-                float estDisp = disparityMap.at<float>(row, col);
+                float estDisp = disparityMap.at<float>(row, col) * scalingFactor;
+                //float estDisp = disparityMap.at<float>(row, col);
                 float gtDisp = gtDisparityFloat.at<float>(row, col);
                 if(estDisp >= 0 && gtDisp > 0) {
                     double error = estDisp - gtDisp;
@@ -251,6 +263,13 @@ int main(int argc, char** argv) {
     cv::imwrite("DisparityMap_NW.png", disparityMapVis);
     std::cout << "Disparity Map saved to: DisparityMap_NW.png" << std::endl;
 
+    for (int row = 0; row < 5; ++row) {
+        std::cout << "Row " << row << " disparities: ";
+        for (int col = 0; col < disparityMap.cols; ++col) {
+            std::cout << disparityMap.at<float>(row, col) << " ";
+        }
+        std::cout << std::endl;
+    }
 
     return 0;
 }
