@@ -9,8 +9,10 @@ __global__ void fillMatrixWavefrontKernel(int* d_matrix, int rows, int cols,
                                          int matchScore, int mismatchPenalty, int gapPenalty, 
                                          int diagonal);
 
+// CUDA Kernel for Fused Wavefront Parallelization
 __global__ void fusedFillMatrixKernel(int* d_matrix, int rows, int cols, 
                                         const int* d_left, const int* d_right,
-                                        int gapPenalty, int startDiag, int endDiag);
+                                        int matchScore, int mismatchPenalty, int gapPenalty, 
+                                        int startDiag, int endDiag);
 
 #endif // STEREO_MATCHING_KERNEL_H
