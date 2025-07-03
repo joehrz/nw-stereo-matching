@@ -13,18 +13,20 @@ struct AlignmentResult {
 };
 
 // StereoMatcher class encapsulates the NW algorithm for stereo matching
-class StereoMatcher {
-public:
-    // Constructor to initialize scoring parameters
-    StereoMatcher(int matchScore, int mismatchPenalty, int gapPenalty);
+// class StereoMatcher {
+// public:
+//     // Constructor to initialize scoring parameters
+//     StereoMatcher(int matchScore, int mismatchPenalty, int gapPenalty);
 
-    // CPU version
-    AlignmentResult computeAlignment(const std::vector<int>& leftLine, const std::vector<int>& rightLine);
+//     // CPU version
+//     AlignmentResult computeAlignment(const std::vector<int>& leftLine, const std::vector<int>& rightLine);
 
-    // CUDA Wavefront Parallelization version
-    AlignmentResult computeAlignmentCUDA(const std::vector<int>& leftLine, const std::vector<int>& rightLine);
+//     // CUDA Wavefront Parallelization version
+//     AlignmentResult computeAlignmentCUDA(const std::vector<int>& leftLine, const std::vector<int>& rightLine);
 
-    AlignmentResult computeAlignmentCUDA_Fused(const std::vector<int>& leftline, const std::vector<int>& rightline);
+//     AlignmentResult computeAlignmentCUDA_Fused(const std::vector<int>& leftline, const std::vector<int>& rightline);
+
+class 
 
 private:
     int matchScore_;
