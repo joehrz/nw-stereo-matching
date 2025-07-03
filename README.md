@@ -69,7 +69,7 @@ Implementing the Needleman–Wunsch algorithm on CUDA involves parallelizing the
 
 
    ```bash
-   git clone https://github.com/yourusername/nw-stereo-matching.git
+   git clone https://github.com/joehrz/nw-stereo-matching.git
    cd nw-stereo-matching
    mkdir build
     cd build
