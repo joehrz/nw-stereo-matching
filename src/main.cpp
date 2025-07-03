@@ -26,6 +26,7 @@ int main(int argc, char** argv) {
 
     if(leftImg.empty()) {
         std::cerr << "Error loading left image: " << leftPath << std::endl;
+        
         return -1;
     }
     if(rightImg.empty()) {
@@ -72,9 +73,9 @@ int main(int argc, char** argv) {
 
 
     // Option 2: Emphasize matches, stronger mismatch penalty, very severe gap penalty
-    int matchScore = 50;          // Very high reward for perfect match
-    int mismatchPenalty = -50;    // Very high base penalty for any mismatch
-    int gapPenalty = -100;        // Extremely costly gaps
+    int matchScore = 5;          // Very high reward for perfect match
+    int mismatchPenalty = 0;    // Very high base penalty for any mismatch
+    int gapPenalty = -1;        // Extremely costly gaps
 
     // Option 3: Focus on minimizing differences, moderate gap penalty
     // int matchScore = 0;      // No explicit reward for perfect match beyond zero difference cost
